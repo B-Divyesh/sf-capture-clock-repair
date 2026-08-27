@@ -1,0 +1,11 @@
+{
+  "slug": "capture-clock-repair",
+  "title": "Capture Clock Repair",
+  "territory": "utilities",
+  "user": "Photographers consolidating photos from cameras, phones, messengers, and travel across time zones who need to repair missing or shifted capture times without overwriting trustworthy originals.",
+  "smallest_useful_product": "A local CLI that groups by camera/source, flags timezone and filename/date conflicts, proposes reversible XMP sidecar patches, and outputs a review CSV.",
+  "success_measure": "At least 75% of pilot runs accept or amend a proposed correction plan, with zero reported changes to files that already had an accepted DateTimeOriginal value.",
+  "artifact_class": "cli",
+  "monetization": "one-time",
+  "constraints": ["Never alter originals by default", "Preserve timezone offsets", "Support a complete undo manifest", "Clearly label inferred dates as inferred"]
+}
