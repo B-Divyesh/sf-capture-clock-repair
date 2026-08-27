@@ -1,0 +1,12 @@
+# Capture Clock Repair
+
+> An offline, conservative CLI for planning photo capture-time repairs with reversible XMP sidecars.
+
+Capture Clock Repair scans local JPEG archives, protects existing DateTimeOriginal values, identifies likely filename and timezone conflicts, exports an editable review CSV, and writes approved inferred dates only to adjacent XMP files. It makes no network requests and never edits original photos.
+
+## Documentation
+
+- [Usage and method](https://capture-clock-repair.sociobot.in/)
+- [Privacy](https://capture-clock-repair.sociobot.in/privacy/)
+- [Terms](https://capture-clock-repair.sociobot.in/terms/)
+- [Source](https://github.com/B-Divyesh/sf-capture-clock-repair)

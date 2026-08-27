@@ -5,11 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "test": "cargo test && node --test",
+    "test": "cargo test && node --test test/*.test.mjs",
+    "test:browser": "node scripts/verify-browser.mjs",
     "build:site": "vite build",
     "build": "cargo build --release && vite build && node scripts/copy-binary.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "lighthouse": "^13.4.1",
+    "playwright": "^1.62.1",
     "vite": "^7.1.3"
   }
 }

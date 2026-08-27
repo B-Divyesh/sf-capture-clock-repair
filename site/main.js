@@ -65,7 +65,7 @@ async function verifyLicense(token, force = false) {
     }
   }
   if (!navigator.onLine) {
-    if (cached?.valid) showUnlocked("License active from the last check · currently offline.");
+    if (cached?.valid && cached.token === token) showUnlocked("License active from the last check · currently offline.");
     else byId("license-status").textContent = "Offline. Your license will be checked when you reconnect.";
     return;
   }
@@ -78,7 +78,7 @@ async function verifyLicense(token, force = false) {
     if (verdict.valid) showUnlocked();
     else showLocked("This license is no longer active.");
   } catch {
-    if (cached?.valid) showUnlocked("License active from the last check; verification is temporarily unavailable.");
+    if (cached?.valid && cached.token === token) showUnlocked("License active from the last check; verification is temporarily unavailable.");
     else {
       byId("license-status").classList.add("error");
       byId("license-status").textContent = "The license service could not be reached. Check your connection and try again.";
