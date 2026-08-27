@@ -333,6 +333,12 @@ pub fn apply_review(
             "nothing is approved; set action to accept or amend in the review CSV".into(),
         ));
     }
+    if manifest_path.as_ref().exists() {
+        return Err(Error::Invalid(format!(
+            "undo manifest '{}' already exists; choose a new path",
+            manifest_path.as_ref().display()
+        )));
+    }
     let mut created: Vec<ManifestEntry> = Vec::new();
     for (original, sidecar, body) in operations {
         if let Err(error) = fs::write(&sidecar, body.as_bytes()) {

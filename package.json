@@ -1,0 +1,15 @@
+{
+  "name": "capture-clock-repair-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "test": "cargo test && node --test",
+    "build:site": "vite build",
+    "build": "cargo build --release && vite build && node scripts/copy-binary.mjs"
+  },
+  "devDependencies": {
+    "vite": "^7.1.3"
+  }
+}
