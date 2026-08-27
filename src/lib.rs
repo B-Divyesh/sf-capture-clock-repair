@@ -280,14 +280,6 @@ pub fn apply_review(
         let record = item?;
         match record.action.trim().to_ascii_lowercase().as_str() {
             "accept" | "amend" => {
-                if !record.original_time.trim().is_empty() || record.status.starts_with("trusted") {
-                    return Err(Error::Invalid(format!(
-                        "refusing row {}: files with an original DateTimeOriginal can only be kept",
-                        record.id
-                    )));
-                }
-                parse_iso_time(&record.proposed_time)
-                    .map_err(|message| Error::Invalid(format!("row {}: {message}", record.id)))?;
                 let original = PathBuf::from(&record.file);
                 if !original.is_file() {
                     return Err(Error::Invalid(format!(
@@ -296,6 +288,20 @@ pub fn apply_review(
                         original.display()
                     )));
                 }
+                let is_reviewed_conflict = record.status == "conflict"
+                    && !record.conflict.trim().is_empty()
+                    && record.action.eq_ignore_ascii_case("amend")
+                    && has_current_filename_conflict(&original, &record.original_time);
+                if (!record.original_time.trim().is_empty() && !is_reviewed_conflict)
+                    || record.status == "trusted"
+                {
+                    return Err(Error::Invalid(format!(
+                        "refusing row {}: an existing DateTimeOriginal can only be changed when a flagged conflict is explicitly amended",
+                        record.id
+                    )));
+                }
+                parse_iso_time(&record.proposed_time)
+                    .map_err(|message| Error::Invalid(format!("row {}: {message}", record.id)))?;
                 let sidecar = sidecar_path(&original);
                 if sidecar.exists() {
                     return Err(Error::Invalid(format!(
@@ -479,7 +485,7 @@ fn inspect_file(path: &Path, id: usize, fallback_offset: &str) -> Result<ReviewR
     if let Some(taken) = exif.taken {
         let offset = exif.offset.unwrap_or_default();
         record.original_time = format_exif_time(&taken, &offset).unwrap_or_else(|| taken.clone());
-        record.offset = offset;
+        record.offset = offset.clone();
         record.status = "trusted".into();
         record.confidence = "embedded".into();
         record.action = "keep".into();
@@ -487,16 +493,34 @@ fn inspect_file(path: &Path, id: usize, fallback_offset: &str) -> Result<ReviewR
         if let (Some(original), Some(named)) = (parse_exif_naive(&taken), filename_time) {
             let minutes = (original - named).num_minutes().unsigned_abs();
             if (55..=65).contains(&minutes) {
-                record.status = "trusted_with_conflict".into();
+                let proposal_offset = if offset.is_empty() {
+                    fallback_offset
+                } else {
+                    &offset
+                };
+                record.status = "conflict".into();
                 record.conflict = "possible_timezone_drift".into();
+                record.proposed_time = with_offset(named, proposal_offset)?;
+                record.inference = "filename_vs_exif".into();
+                record.confidence = "medium".into();
+                record.action = "review".into();
                 record.note = format!(
-                    "Filename clock differs by {minutes} minutes. Original remains protected; review the source timezone."
+                    "Filename clock differs by {minutes} minutes. Review the source timezone; use amend to approve the sidecar proposal."
                 );
             } else if minutes > 5 {
-                record.status = "trusted_with_conflict".into();
+                let proposal_offset = if offset.is_empty() {
+                    fallback_offset
+                } else {
+                    &offset
+                };
+                record.status = "conflict".into();
                 record.conflict = "filename_date_conflict".into();
+                record.proposed_time = with_offset(named, proposal_offset)?;
+                record.inference = "filename_vs_exif".into();
+                record.confidence = "low".into();
+                record.action = "review".into();
                 record.note = format!(
-                    "Filename clock differs by {minutes} minutes. Original remains protected."
+                    "Filename clock differs by {minutes} minutes. Investigate; use amend only if the filename clock is correct."
                 );
             }
         }
@@ -621,6 +645,26 @@ fn parse_iso_time(value: &str) -> Result<DateTime<FixedOffset>, String> {
         .map_err(|_| format!("invalid proposed_time '{value}'; expected ISO 8601 with an offset"))
 }
 
+fn has_current_filename_conflict(path: &Path, recorded_original: &str) -> bool {
+    let exif = read_exif(path);
+    let Some(taken) = exif.taken else {
+        return false;
+    };
+    let offset = exif.offset.unwrap_or_default();
+    let Some(formatted) = format_exif_time(&taken, &offset) else {
+        return false;
+    };
+    let Some(original) = parse_exif_naive(&taken) else {
+        return false;
+    };
+    let Some(named) =
+        timestamp_from_filename(path.file_stem().and_then(|s| s.to_str()).unwrap_or(""))
+    else {
+        return false;
+    };
+    formatted == recorded_original && (original - named).num_minutes().unsigned_abs() > 5
+}
+
 fn source_name(path: &Path, exif: &ExifMetadata) -> String {
     let camera = [exif.make.as_deref(), exif.model.as_deref()]
         .into_iter()
@@ -690,6 +734,34 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
+    fn exif_jpeg() -> Vec<u8> {
+        fn entry(bytes: &mut Vec<u8>, tag: u16, kind: u16, count: u32, value: u32) {
+            bytes.extend(tag.to_le_bytes());
+            bytes.extend(kind.to_le_bytes());
+            bytes.extend(count.to_le_bytes());
+            bytes.extend(value.to_le_bytes());
+        }
+        let mut tiff = b"II\x2a\0\x08\0\0\0".to_vec();
+        tiff.extend(3_u16.to_le_bytes());
+        entry(&mut tiff, 0x010f, 2, 6, 50);
+        entry(&mut tiff, 0x0110, 2, 5, 56);
+        entry(&mut tiff, 0x8769, 4, 1, 62);
+        tiff.extend(0_u32.to_le_bytes());
+        tiff.extend(b"NIKON\0D750\0\0");
+        tiff.extend(2_u16.to_le_bytes());
+        entry(&mut tiff, 0x9003, 2, 20, 92);
+        entry(&mut tiff, 0x9011, 2, 7, 112);
+        tiff.extend(0_u32.to_le_bytes());
+        tiff.extend(b"2025:04:18 19:42:11\0+05:30\0");
+        let mut jpeg = vec![0xff, 0xd8, 0xff, 0xe1];
+        let segment_length = (6 + tiff.len() + 2) as u16;
+        jpeg.extend(segment_length.to_be_bytes());
+        jpeg.extend(b"Exif\0\0");
+        jpeg.extend(tiff);
+        jpeg.extend([0xff, 0xd9]);
+        jpeg
+    }
+
     #[test]
     fn extracts_common_filename_clocks() {
         assert_eq!(
@@ -735,6 +807,28 @@ mod tests {
     }
 
     #[test]
+    fn protects_embedded_time_and_flags_hour_drift() {
+        let archive = tempdir().unwrap();
+        fs::write(archive.path().join("IMG_20250418_204211.jpg"), exif_jpeg()).unwrap();
+        let mut plan = scan_archive(archive.path(), ScanOptions::default()).unwrap();
+        let record = &plan.records[0];
+        assert_eq!(record.source, "NIKON D750");
+        assert_eq!(record.original_time, "2025-04-18T19:42:11+05:30");
+        assert_eq!(record.status, "conflict");
+        assert_eq!(record.conflict, "possible_timezone_drift");
+        assert_eq!(record.action, "review");
+        assert_eq!(record.proposed_time, "2025-04-18T20:42:11+05:30");
+        let original_bytes = fs::read(&record.file).unwrap();
+        plan.records[0].action = "amend".into();
+        let output = archive.path().join("conflict-review");
+        write_plan(&plan, &output).unwrap();
+        let result =
+            apply_review(output.join("review.csv"), output.join("undo.json"), false).unwrap();
+        assert_eq!(result.created, 1);
+        assert_eq!(fs::read(&plan.records[0].file).unwrap(), original_bytes);
+    }
+
+    #[test]
     fn apply_refuses_to_overwrite_sidecar() {
         let archive = tempdir().unwrap();
         let photo = archive.path().join("20250102_030405.jpg");
@@ -746,5 +840,23 @@ mod tests {
         let error =
             apply_review(output.join("review.csv"), output.join("undo.json"), false).unwrap_err();
         assert_eq!(error.exit_code(), 2);
+    }
+
+    #[test]
+    fn apply_rechecks_embedded_time_before_an_amendment() {
+        let archive = tempdir().unwrap();
+        fs::write(archive.path().join("IMG_20250418_194211.jpg"), exif_jpeg()).unwrap();
+        let mut plan = scan_archive(archive.path(), ScanOptions::default()).unwrap();
+        assert_eq!(plan.records[0].status, "trusted");
+        plan.records[0].status = "conflict".into();
+        plan.records[0].conflict = "possible_timezone_drift".into();
+        plan.records[0].proposed_time = "2025-04-18T20:42:11+05:30".into();
+        plan.records[0].action = "amend".into();
+        let output = archive.path().join("tampered-review");
+        write_plan(&plan, &output).unwrap();
+        let error =
+            apply_review(output.join("review.csv"), output.join("undo.json"), false).unwrap_err();
+        assert_eq!(error.exit_code(), 2);
+        assert!(!archive.path().join("IMG_20250418_194211.jpg.xmp").exists());
     }
 }

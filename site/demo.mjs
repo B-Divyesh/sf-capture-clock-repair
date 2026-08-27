@@ -11,15 +11,15 @@ export const samples = {
     action: "accept"
   },
   nikon: {
-    file: "DSC_1842.JPG",
+    file: "2026-03-29_11.15.04_DSC_1842.JPG",
     source: "Nikon D750",
     original: "2026-03-29T10:15:04+01:00",
-    proposed: "No patch proposed",
+    proposed: "2026-03-29T11:15:04+01:00",
     inference: "Embedded EXIF vs filename clock",
     status: "Possible 1-hour timezone drift",
     badge: "Protected conflict",
     warning: true,
-    action: "keep"
+    action: "review → amend after confirmation"
   },
   unknown: {
     file: "summer-evening.jpg",

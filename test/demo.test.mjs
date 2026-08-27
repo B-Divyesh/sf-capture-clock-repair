@@ -8,10 +8,10 @@ test("filename evidence preserves the chosen offset", () => {
   assert.equal(result.action, "accept");
 });
 
-test("trusted timezone conflict remains protected", () => {
+test("timezone conflict requires explicit review", () => {
   const result = analyzeSample("nikon", "+00:00");
-  assert.equal(result.action, "keep");
-  assert.equal(result.proposed, "No patch proposed");
+  assert.equal(result.action, "review → amend after confirmation");
+  assert.equal(result.proposed, "2026-03-29T11:15:04+01:00");
   assert.match(specimenMarkup(result), /Protected conflict/);
 });
 

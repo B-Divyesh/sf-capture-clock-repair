@@ -157,7 +157,14 @@ fn run() -> Result<(), Error> {
 
 fn main() {
     if let Err(error) = run() {
-        eprintln!("capture-clock-repair: {error}");
+        if std::env::args_os().any(|argument| argument == "--json") {
+            eprintln!(
+                "{}",
+                serde_json::json!({ "error": error.to_string(), "exit_code": error.exit_code() })
+            );
+        } else {
+            eprintln!("capture-clock-repair: {error}");
+        }
         std::process::exit(error.exit_code());
     }
 }

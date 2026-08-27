@@ -21,7 +21,7 @@ capture-clock-repair scan ~/Pictures/Trip \
   --timezone +05:30
 ```
 
-This writes `clock-review/review.csv` and `clock-review/plan.json`. Rows with a trustworthy EXIF `DateTimeOriginal` use `keep` and can never become sidecar writes. Missing dates inferred from a filename are proposed as `accept`; weaker filesystem-time guesses remain `review`. Conflicts remain `review`.
+This writes `clock-review/review.csv` and `clock-review/plan.json`. Rows with a trustworthy EXIF `DateTimeOriginal` use `keep` and can never become sidecar writes. Missing dates inferred from a filename are proposed as `accept`; weaker filesystem-time guesses remain `review`. Conflicts remain `review` until you explicitly change their action to `amend`.
 
 Open `review.csv` in a spreadsheet or text editor. Set `action` to `accept` for an unchanged proposal, or use `amend` with an ISO 8601 `proposed_time` such as `2025-04-18T19:42:11+05:30`. Leave uncertain rows as `review` or `skip`. Then preview and apply:
 

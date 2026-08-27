@@ -9,6 +9,7 @@ repository = "https://github.com/B-Divyesh/sf-capture-clock-repair"
 readme = "README.md"
 keywords = ["exif", "xmp", "photography", "metadata", "cli"]
 categories = ["command-line-utilities", "multimedia::images"]
+include = ["/src/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE", "/CHANGELOG.md"]
 
 [lib]
 name = "capture_clock_repair"
