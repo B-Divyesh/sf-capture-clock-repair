@@ -1,38 +1,24 @@
-# Capture Clock Repair v0.1.0 handoff
+# Capture Clock Repair v0.1.0 handoff — verification result: FAIL
 
-## What shipped
+**Verified candidate:** `2394f4d433616665f686adb6bf7b68406d2107e3`
+**Live deployment checked:** https://capture-clock-repair.sociobot.in/
 
-- A typed Rust library and `capture-clock-repair` single-binary CLI with `scan`, `apply`, and `undo` commands, helpful `--help`, structured `--json`, stable exit codes, dry runs, and no prompts or telemetry.
-- Recursive JPEG inventory with EXIF `DateTimeOriginal`, `OffsetTimeOriginal`, make/model source grouping, common camera/messenger filename clocks, filesystem fallback, unsupported-format reporting, filename conflicts, and likely whole-hour timezone-drift flags.
-- `review.csv` plus `plan.json`. Clean embedded dates default to `keep`. Missing filename-derived dates default to `accept`; weak filesystem dates and all conflicts default to `review`. A conflict can become an XMP proposal only through an explicit `amend`, and apply re-reads EXIF and confirms the conflict before writing.
-- Adjacent `<photo>.xmp` patches that label the date, evidence, confidence, and inferred status. Originals are never written. Existing sidecars and existing manifest files are refused.
-- A checksummed undo manifest. Undo removes only the exact sidecars that apply created and refuses any sidecar changed afterward.
-- A responsive, keyboard-operable static landing/docs site at `dist/site`, with an interactive recorded demo, offline shell, dark treatment, privacy and terms pages, and the Sociobot one-time paid-unlock flow. All CLI safety, repair, undo, and export features remain free; $19 unlocks only the optional browser field kit.
-- The botanical field-guide visual system in `.factory/design.md` and an original factory-generated hero plate. The optimized WebP is 76 KB, with a 19 KB responsive variant.
+Independent verification is **FAIL**. The product’s conservative scan, review, sidecar, undo, static site, offline behavior, package installation, and live deployment all passed the checks below. Release is blocked by the normal negative-timezone command form: `capture-clock-repair scan ./archive --timezone -04:00` exits 2 instead of accepting the promised `-HH:MM` offset. `--timezone=-04:00` works, but that workaround is undocumented.
 
-## Run and verify
+## Verified
 
-```sh
-npm install
-npm test
-npm run build
-npm run dev
-```
+- Clean detached checkout at the candidate; `npm ci`, `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `npm test`, and `npm run build` passed.
+- Test total: 5 Rust tests, 1 compiling doctest, and 3 Node tests, all passing. Production output contains the release CLI at `dist/bin/capture-clock-repair` and static deploy output at `dist/site`.
+- `cargo package --allow-dirty` passed. The unpacked crate installed cleanly via `cargo install --path` and its installed binary scanned a consumer archive. Do not publish; registry credentials remain factory-owned.
+- Release-binary end-to-end test: filename-derived `+05:30` proposal, review CSV/plan JSON, dry run, sidecar apply, SHA-256 check that originals were unchanged, and undo all passed. Invalid input, existing-sidecar refusal, changed-sidecar undo refusal, recursive/no-recursive handling, unsupported-file reporting, and valid `+23:59` were also checked.
+- Site browser checks passed locally and live (after installing the Playwright browser prerequisite): 200 responses, one `h1` and one `main` per page, no console/page errors, and zero Axe violations on home/privacy/terms in light and dark schemes. 390 px had no overflow; keyboard, focus, and reduced motion worked.
+- Lighthouse mobile on the production build: Performance 99, Accessibility 100, LCP 1.666 s, CLS 0. Built JS is 5.9 KB, CSS 10.9 KB, and hero assets are 77 KB / 19 KB.
+- Live HTML and JS SHA-256 match the candidate build. Live headers provide CSP, HSTS, nosniff, DENY framing, permissions/referrer policy, immutable asset caching, and no-cache service-worker caching. No third-party request occurs on normal load; the live PWA reloaded offline from `capture-clock-repair-v2`.
 
-`npm test` runs five Rust unit/integration tests, the compiling Rust documentation example, and three browser-logic tests. `npm run build` builds the release binary at `dist/bin/capture-clock-repair` and the deployable static site at `dist/site/index.html`.
+## Required before release
 
-Additional checks completed on 2026-08-27:
+1. Make `--timezone -04:00` work (not only `--timezone=-04:00`) and add a regression test.
+2. Document or automate `npx playwright install chromium` for `npm run test:browser` from a clean checkout.
+3. Fix the stray commands/unmatched code fence at the end of `README.md`.
 
-- `cargo clippy --all-targets --all-features -- -D warnings` — passed.
-- `cargo package --allow-dirty` — package verification passed. Ready-to-publish command: `cargo publish` (factory credentials only; not run here).
-- Real CLI scan → CSV → dry run → sidecar apply → JSON result → checksummed undo — passed against a temporary JPEG archive.
-- `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173/ .factory/evidence` — HTTP 200, title/lang/main/alt present, no console errors. Evidence and desktop/mobile screenshots are in `.factory/evidence/`.
-- Playwright + Axe on `/`, `/privacy/`, and `/terms/`, in light and dark schemes — zero violations and zero console/page errors. A 390 × 844 run had no horizontal overflow and completed the demo with keyboard-native controls.
-- Lighthouse mobile against the production build — Performance 100, Accessibility 100, Best Practices 100, SEO 100. LCP 1.4 s, CLS 0, total transfer 86 KiB. INP was not observed in the lab run; the only demo update is synchronous and contains no long task.
-- Built asset budgets: initial JS 5.91 KB, CSS 10.86 KB, hero WebP 76 KB desktop / 19 KB mobile; no runtime CDN, fonts, analytics, or third-party scripts.
-
-## Known gaps and next steps
-
-- v0.1.0 reads embedded metadata only from JPEG/JPG. RAW, HEIC, TIFF, PNG, and video files are listed as unsupported and untouched. A future parser can add them without changing the plan format.
-- Timezone drift is evidence, not certainty. The CLI proposes the filename clock for review but requires the user to change `review` to `amend`; it never rewrites embedded EXIF.
-- The factory still needs to register the paid product, provide release binaries for target platforms, and switch to its release deployment process. No registry publication, infrastructure, DNS, billing registration, or secrets were touched.
+See `.factory/verification.md` for exact commands, observed outputs, live evidence, and defect severities.
