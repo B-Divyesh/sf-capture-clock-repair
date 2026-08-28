@@ -27,7 +27,12 @@ enum Command {
         #[arg(short, long, default_value = "clock-review")]
         output: PathBuf,
         /// Offset used only for filename-inferred local times (+HH:MM or -HH:MM)
-        #[arg(long, default_value = "+00:00", value_parser = parse_offset)]
+        #[arg(
+            long,
+            default_value = "+00:00",
+            value_parser = parse_offset,
+            allow_hyphen_values = true
+        )]
         timezone: String,
         /// Inspect only the named folder, not its descendants
         #[arg(long)]
@@ -166,5 +171,27 @@ fn main() {
             eprintln!("capture-clock-repair: {error}");
         }
         std::process::exit(error.exit_code());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scan_accepts_a_separated_negative_timezone_offset() {
+        let cli = Cli::try_parse_from([
+            "capture-clock-repair",
+            "scan",
+            "./archive",
+            "--timezone",
+            "-04:00",
+        ])
+        .expect("the documented separated negative offset should parse");
+
+        let Command::Scan { timezone, .. } = cli.command else {
+            panic!("expected scan command");
+        };
+        assert_eq!(timezone, "-04:00");
     }
 }

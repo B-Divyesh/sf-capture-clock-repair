@@ -1,24 +1,53 @@
-# Capture Clock Repair v0.1.0 handoff — verification result: FAIL
+# Capture Clock Repair v0.1.0 handoff — repair verification: PASS
 
-**Verified candidate:** `2394f4d433616665f686adb6bf7b68406d2107e3`
-**Live deployment checked:** https://capture-clock-repair.sociobot.in/
+**Repair base:** `ff1da3b53bf8b5fc4ae4916694b4324ea08a09c2` (failed candidate `2394f4d433616665f686adb6bf7b68406d2107e3`)
+**Deployment class:** static site at `dist/site`; release CLI at `dist/bin/capture-clock-repair`
 
-Independent verification is **FAIL**. The product’s conservative scan, review, sidecar, undo, static site, offline behavior, package installation, and live deployment all passed the checks below. Release is blocked by the normal negative-timezone command form: `capture-clock-repair scan ./archive --timezone -04:00` exits 2 instead of accepting the promised `-HH:MM` offset. `--timezone=-04:00` works, but that workaround is undocumented.
+## Repair completed
 
-## Verified
+- Fixed the release-blocking Clap parsing defect: `scan --timezone -04:00` now accepts the documented separated negative offset form. The change is scoped to the `timezone` argument (`allow_hyphen_values`) and still validates offsets as `+HH:MM` or `-HH:MM`.
+- Added a Rust parser regression test that invokes the exact documented argument sequence and asserts that `-04:00` is preserved.
+- Pinned Playwright to `1.58.2`, matching the factory-provided Chromium, and documented the explicit `npx playwright install chromium` fallback for other clean environments.
+- Repaired the README's trailing duplicated commands and unmatched code fence. The usage documentation now includes the normal negative-offset command form.
 
-- Clean detached checkout at the candidate; `npm ci`, `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `npm test`, and `npm run build` passed.
-- Test total: 5 Rust tests, 1 compiling doctest, and 3 Node tests, all passing. Production output contains the release CLI at `dist/bin/capture-clock-repair` and static deploy output at `dist/site`.
-- `cargo package --allow-dirty` passed. The unpacked crate installed cleanly via `cargo install --path` and its installed binary scanned a consumer archive. Do not publish; registry credentials remain factory-owned.
-- Release-binary end-to-end test: filename-derived `+05:30` proposal, review CSV/plan JSON, dry run, sidecar apply, SHA-256 check that originals were unchanged, and undo all passed. Invalid input, existing-sidecar refusal, changed-sidecar undo refusal, recursive/no-recursive handling, unsupported-file reporting, and valid `+23:59` were also checked.
-- Site browser checks passed locally and live (after installing the Playwright browser prerequisite): 200 responses, one `h1` and one `main` per page, no console/page errors, and zero Axe violations on home/privacy/terms in light and dark schemes. 390 px had no overflow; keyboard, focus, and reduced motion worked.
-- Lighthouse mobile on the production build: Performance 99, Accessibility 100, LCP 1.666 s, CLS 0. Built JS is 5.9 KB, CSS 10.9 KB, and hero assets are 77 KB / 19 KB.
-- Live HTML and JS SHA-256 match the candidate build. Live headers provide CSP, HSTS, nosniff, DENY framing, permissions/referrer policy, immutable asset caching, and no-cache service-worker caching. No third-party request occurs on normal load; the live PWA reloaded offline from `capture-clock-repair-v2`.
+## How to run and verify
 
-## Required before release
+```sh
+npm ci
+npx playwright install chromium # only when Chromium is not already supplied by the environment
+npm test
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+npm run build
+cargo package --allow-dirty
+```
 
-1. Make `--timezone -04:00` work (not only `--timezone=-04:00`) and add a regression test.
-2. Document or automate `npx playwright install chromium` for `npm run test:browser` from a clean checkout.
-3. Fix the stray commands/unmatched code fence at the end of `README.md`.
+The browser suite expects a built site served at `http://127.0.0.1:4173` (for example, run `npx vite preview --host 127.0.0.1 --port 4173` after `npm run build`), then run:
 
-See `.factory/verification.md` for exact commands, observed outputs, live evidence, and defect severities.
+```sh
+npm run test:browser
+```
+
+Ready-to-publish package check (do not publish; the factory owns credentials):
+
+```sh
+cargo package --allow-dirty
+cargo install --path target/package/capture-clock-repair-0.1.0 --root /tmp/capture-clock-repair-consumer
+```
+
+## Verification evidence — 2026-08-28
+
+- Clean `npm ci` completed with 0 npm vulnerabilities. It resolved Playwright `1.58.2` and the preinstalled Chromium executable at `/opt/pw-browsers/chromium-1208/chrome-linux64/chrome`.
+- `npm test` passed: 6 Rust tests (including the new separated-negative-offset parser regression), 1 compiling Rust doctest, and 3 Node tests. `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` passed.
+- `npm run build` passed and produced `dist/bin/capture-clock-repair` plus `dist/site`. Built JS is 5,906 bytes (2,770 gzip), CSS 10,859 bytes (3,400 gzip), and hero WebP files are 77,272 and 19,164 bytes.
+- The release binary scanned a temporary filename-dated JPEG with `--timezone -04:00 --json`; its plan timezone and proposal were both exactly `-04:00` / `2025-04-18T19:42:11-04:00`.
+- `cargo package --allow-dirty` verified the crate (9 files, 61.9 KiB). A clean `cargo install --path target/package/capture-clock-repair-0.1.0 --root <temp>` consumer installation also scanned that archive with the normal separated negative-offset form and emitted `2025-04-18T19:42:11-04:00`.
+- `npm run test:browser` against the built site passed for `/`, `/privacy/`, and `/terms/` in light and dark modes: HTTP 200, exactly one `h1` and `main`, no console/page errors, and zero Axe violations. The factory `verify-url.sh` check reported title, `lang`, `main`, and image alt text present with no errors.
+- Additional Playwright smoke checks passed: the skip link received a visible 3 px focus outline; keyboard selection/submission produced the demo analysis; 390 × 844 had no horizontal overflow; reduced motion computed to `1e-05s`; and an offline reload after service-worker readiness rendered the home heading from the cached shell.
+- Local mobile Lighthouse: Performance 100, Accessibility 100, LCP 1,354.4003 ms, CLS 0. The CLI has no network behavior; the normal page load uses no third-party assets, analytics, tracking, fonts, or scripts. `site/public/staticwebapp.config.json` preserves the production CSP, privacy/security headers, immutable asset caching, and no-cache service-worker policy.
+
+## Known scope limits
+
+- JPEG/JPG metadata is supported in v0.1.0. RAW, HEIC, TIFF, PNG, and video files are reported as unsupported and left untouched.
+- Timezone conflicts remain evidence for review; a conflicting embedded timestamp can only become a sidecar write through explicit `amend`. Originals are never modified.
+- No registry publication, billing registration, DNS, infrastructure, or secrets were touched. The factory owns those operations.

@@ -21,6 +21,12 @@ capture-clock-repair scan ~/Pictures/Trip \
   --timezone +05:30
 ```
 
+Negative offsets use the same separated form, so a trip in Atlantic time is:
+
+```sh
+capture-clock-repair scan ~/Pictures/Trip --output clock-review --timezone -04:00
+```
+
 This writes `clock-review/review.csv` and `clock-review/plan.json`. Rows with a trustworthy EXIF `DateTimeOriginal` use `keep` and can never become sidecar writes. Missing dates inferred from a filename are proposed as `accept`; weaker filesystem-time guesses remain `review`. Conflicts remain `review` until you explicitly change their action to `amend`.
 
 Open `review.csv` in a spreadsheet or text editor. Set `action` to `accept` for an unchanged proposal, or use `amend` with an ISO 8601 `proposed_time` such as `2025-04-18T19:42:11+05:30`. Leave uncertain rows as `review` or `skip`. Then preview and apply:
@@ -67,7 +73,8 @@ Capture Clock Repair does not claim forensic certainty and does not rewrite embe
 ```sh
 cargo test
 cargo build --release
-npm install
+npm ci
+npx playwright install chromium # browser-test prerequisite after a clean checkout
 npm test
 npm run build:site       # static site -> dist/site
 npm run build            # release binary + static site -> dist/
@@ -83,7 +90,3 @@ Photo inspection is entirely local. No filenames, timestamps, metadata, or plans
 ## License
 
 MIT. See [LICENSE](LICENSE). Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
-npm run dev
-npm test
-npm run build   # -> dist/
-```
