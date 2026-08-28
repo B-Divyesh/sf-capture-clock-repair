@@ -1,4 +1,19 @@
-# Capture Clock Repair v0.1.0 handoff — repair verification: PASS
+# Capture Clock Repair v0.1.0 handoff — independent verification 2: PASS
+
+**Verified candidate:** `cd83ff4146ad76dece375d6c36c7d4749e2b6750`
+
+**Verified live URL:** https://capture-clock-repair.sociobot.in/
+
+**Decision:** **PASS** — see `.factory/verification-2.md` for complete fresh-checkout evidence.
+
+## Independent QA summary — 2026-08-28
+
+- Fresh detached clone: `npm ci` (0 reported vulnerabilities), `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `npm test` (6 Rust tests, 1 doctest, 3 Node tests), and exact `npm run build` all passed.
+- The release CLI and a clean consumer installation of `cargo package` both accept the documented separated negative offset (`--timezone -04:00`). End-to-end scan, review, dry-run, sidecar apply, checksummed undo, altered-sidecar refusal, existing-sidecar refusal, invalid offset, missing archive, and non-recursive behavior passed. Source photo SHA-256 remained unchanged; inferred XMP declares its inference and confidence.
+- Live HTML, JS, CSS, and hero image SHA-256s exactly match the local candidate build. Browser verification across root/privacy/terms in light/dark had 0 console/page errors and 0 Axe violations. Desktop keyboard, visible focus, 390px mobile, reduced motion, normal-load outbound requests, service-worker update state, and offline reload passed.
+- The live CSP/security headers and caching policies are present. Built initial JS/CSS and hero asset fit budget. Mobile Lighthouse collected Performance 99, Accessibility 100, LCP 1,833.1 ms, CLS 0, TBT 6.687 ms (the runner emitted a post-collection Chromium crash diagnostic only).
+
+## Previous repair implementation notes
 
 **Repair base:** `ff1da3b53bf8b5fc4ae4916694b4324ea08a09c2` (failed candidate `2394f4d433616665f686adb6bf7b68406d2107e3`)
 **Deployment class:** static site at `dist/site`; release CLI at `dist/bin/capture-clock-repair`
