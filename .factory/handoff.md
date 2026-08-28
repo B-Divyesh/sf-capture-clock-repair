@@ -51,4 +51,4 @@ cargo install --path target/package/capture-clock-repair-0.1.0 --root /tmp/captu
 
 - JPEG/JPG metadata is supported in v0.1.0. RAW, HEIC, TIFF, PNG, and video files are reported as unsupported and left untouched.
 - Timezone conflicts remain evidence for review; a conflicting embedded timestamp can only become a sidecar write through explicit `amend`. Originals are never modified.
-- No registry publication, billing registration, DNS, infrastructure, or secrets were touched. The factory owns those operations.
+- No registry publication, billing registration, or secrets were touched. The authorized static deployment helper refreshed the already configured Azure Static Web App and its custom-domain mapping; the factory continues to own those operations.
