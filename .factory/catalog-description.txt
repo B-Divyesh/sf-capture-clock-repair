@@ -1,0 +1,1 @@
+Repair missing and shifted photo capture times with reviewed, reversible XMP sidecars.

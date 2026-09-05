@@ -23,3 +23,11 @@ Motion is restrained and physical: the demo result lifts 6 px into place over 22
 ## Why it fits
 
 The metaphor reinforces the safety model instead of decorating it. Originals are specimens; metadata is a removable label; confidence is an observation note; an undo manifest is the accession record. That makes conservative behavior understandable before a user reads a command.
+
+## Repair 2 copy and route policy
+
+The botanical direction remains visual, but public copy now uses literal photo and metadata terms. Headings name the task or section. The first screen states the job, audience, sample action, and three concrete facts before the illustration.
+
+The static site uses Vite with plain HTML, CSS, and JavaScript. Separate HTML entries provide `/`, `/demo/`, `/privacy/`, `/terms/`, and the product 404. This keeps the CLI documentation fast and usable without a client framework.
+
+The 1200×630 social card is a center crop of the original generated hero plate. The 180×180 Apple touch icon is a crop of the same plate. Both were made with ImageMagick from the committed original on 2026-09-05. The favicon is an original hand-written SVG using the product palette. No external asset or font was added.

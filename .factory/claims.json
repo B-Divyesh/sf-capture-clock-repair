@@ -1,0 +1,86 @@
+[
+  {
+    "id": "source-install",
+    "claim": "A clean source checkout installs a working capture-clock-repair executable.",
+    "where": "landing install section, README Install",
+    "test": "npm run test:claim -- source-install",
+    "sandbox": "fresh Cargo install root; install the current clean checkout; run --version and the installed demo"
+  },
+  {
+    "id": "mit-license",
+    "claim": "The complete CLI is free to use under the MIT License.",
+    "where": "landing first-screen facts, README License",
+    "test": "npm run test:claim -- mit-license",
+    "sandbox": "inspect package license metadata and LICENSE grant; run the complete bundled demo without an account or payment"
+  },
+  {
+    "id": "cli-demo",
+    "claim": "The demo command creates a populated review CSV and JSON plan from bundled sample files in a separate workspace.",
+    "where": "landing CLI sample, demo page, README Demo",
+    "test": "npm run test:claim -- cli-demo",
+    "sandbox": "new temporary output path; assert exact bundled sample files, summary, review.csv, plan.json, and no writes outside the workspace"
+  },
+  {
+    "id": "archive-plan",
+    "claim": "Scan reads JPEGs recursively, groups likely sources, reports unsupported media, and exports CSV and JSON plans.",
+    "where": "landing How it works and Scope, README Usage and formats",
+    "test": "npm run test:claim -- archive-plan",
+    "sandbox": "temporary nested JPEG archive plus PNG; assert recursive and non-recursive counts, groups, unsupported list, CSV rows, and JSON plan"
+  },
+  {
+    "id": "timezone-offset",
+    "claim": "Filename-inferred times preserve the selected timezone offset, including a separated negative offset.",
+    "where": "README Usage and landing command examples",
+    "test": "npm run test:claim -- timezone-offset",
+    "sandbox": "temporary filename-dated JPEG; scan with --timezone -04:00; assert the observable RFC 3339 proposal and offset"
+  },
+  {
+    "id": "trusted-exif",
+    "claim": "Apply rechecks current EXIF and refuses a trusted DateTimeOriginal disguised as an accepted missing-date row.",
+    "where": "landing Scope and privacy, README Safety model",
+    "test": "npm run test:claim -- trusted-exif",
+    "sandbox": "temporary JPEG with real EXIF; tamper editable CSV control fields; assert exit 2, no sidecar or manifest, and unchanged photo checksum"
+  },
+  {
+    "id": "sidecar-undo",
+    "claim": "Approved repairs create adjacent labeled XMP only, preserve original bytes, refuse existing sidecars, and have checksummed undo.",
+    "where": "landing How it works and Scope, README Apply and undo",
+    "test": "npm run test:claim -- sidecar-undo",
+    "sandbox": "temporary filename-dated JPEG; apply, inspect XMP and manifest, tamper and restore sidecar, undo, and verify original checksum throughout"
+  },
+  {
+    "id": "script-interface",
+    "claim": "JSON output and exit codes support non-interactive scripts.",
+    "where": "README Scripting",
+    "test": "npm run test:claim -- script-interface",
+    "sandbox": "temporary archive; parse successful stdout as JSON; assert invalid offset returns machine-readable stderr and exit 2"
+  },
+  {
+    "id": "cli-private",
+    "claim": "The CLI processes its bundled sample without telemetry or network requests.",
+    "where": "landing first-screen facts and Scope, Privacy, README Privacy",
+    "test": "npm run test:claim -- cli-private",
+    "sandbox": "Linux temporary directory with an LD_PRELOAD socket blocker; run the real demo and assert success with no attempted socket call"
+  },
+  {
+    "id": "web-demo",
+    "claim": "One click opens a filled browser sample that can be changed and reset without reading or saving personal data.",
+    "where": "landing first screen and demo page",
+    "test": "npm run test:claim -- web-demo",
+    "sandbox": "fresh 390px browser context; enter from the primary action, inspect two populated cases, reset, and assert empty local/session storage"
+  },
+  {
+    "id": "site-private",
+    "claim": "The website uses no analytics, trackers, third-party scripts, or remote fonts.",
+    "where": "Privacy and README Privacy",
+    "test": "npm run test:claim -- site-private",
+    "sandbox": "fresh browser context; record every request during the demo flow and assert only the served site origin plus no local/session data"
+  },
+  {
+    "id": "offline-site",
+    "claim": "The guide and browser sample reload offline after the first visit.",
+    "where": "offline notice, Privacy, README Website",
+    "test": "npm run test:claim -- offline-site",
+    "sandbox": "fresh browser context; load demo, wait for service-worker control, set context offline, reload, and assert filled output and offline status"
+  }
+]

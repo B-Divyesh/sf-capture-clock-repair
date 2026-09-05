@@ -13,8 +13,8 @@ use exif::{In, Reader, Tag, Value};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt::{self, Display};
-use std::fs::{self, File};
-use std::io::BufReader;
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -288,18 +288,7 @@ pub fn apply_review(
                         original.display()
                     )));
                 }
-                let is_reviewed_conflict = record.status == "conflict"
-                    && !record.conflict.trim().is_empty()
-                    && record.action.eq_ignore_ascii_case("amend")
-                    && has_current_filename_conflict(&original, &record.original_time);
-                if (!record.original_time.trim().is_empty() && !is_reviewed_conflict)
-                    || record.status == "trusted"
-                {
-                    return Err(Error::Invalid(format!(
-                        "refusing row {}: an existing DateTimeOriginal can only be changed when a flagged conflict is explicitly amended",
-                        record.id
-                    )));
-                }
+                validate_current_metadata(&record, &original)?;
                 parse_iso_time(&record.proposed_time)
                     .map_err(|message| Error::Invalid(format!("row {}: {message}", record.id)))?;
                 let sidecar = sidecar_path(&original);
@@ -311,7 +300,7 @@ pub fn apply_review(
                     )));
                 }
                 let body = xmp_document(&record);
-                operations.push((original, sidecar, body));
+                operations.push((original, sidecar, body, record));
             }
             "keep" | "review" | "skip" | "" => skipped += 1,
             action => {
@@ -324,7 +313,7 @@ pub fn apply_review(
     }
     let sidecars = operations
         .iter()
-        .map(|(_, sidecar, _)| sidecar.to_string_lossy().into_owned())
+        .map(|(_, sidecar, _, _)| sidecar.to_string_lossy().into_owned())
         .collect::<Vec<_>>();
     if dry_run {
         return Ok(ApplyResult {
@@ -346,12 +335,26 @@ pub fn apply_review(
         )));
     }
     let mut created: Vec<ManifestEntry> = Vec::new();
-    for (original, sidecar, body) in operations {
-        if let Err(error) = fs::write(&sidecar, body.as_bytes()) {
+    for (original, sidecar, body, record) in operations {
+        if let Err(error) = validate_current_metadata(&record, &original) {
             for entry in &created {
                 let _: Result<(), _> = fs::remove_file(&entry.sidecar);
             }
-            return Err(Error::Io(error));
+            return Err(error);
+        }
+        let write_result = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&sidecar)
+            .and_then(|mut file| file.write_all(body.as_bytes()));
+        if let Err(error) = write_result {
+            for entry in &created {
+                let _: Result<(), _> = fs::remove_file(&entry.sidecar);
+            }
+            return Err(Error::Invalid(format!(
+                "sidecar '{}' could not be created without overwriting a file: {error}",
+                sidecar.display()
+            )));
         }
         created.push(ManifestEntry {
             original: original.to_string_lossy().into_owned(),
@@ -368,10 +371,13 @@ pub fn apply_review(
     if let Some(parent) = manifest_path.as_ref().parent() {
         fs::create_dir_all(parent)?;
     }
-    if let Err(error) = fs::write(
-        manifest_path.as_ref(),
-        serde_json::to_vec_pretty(&manifest)?,
-    ) {
+    let manifest_bytes = serde_json::to_vec_pretty(&manifest)?;
+    let manifest_write = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(manifest_path.as_ref())
+        .and_then(|mut file| file.write_all(&manifest_bytes));
+    if let Err(error) = manifest_write {
         for entry in &manifest.created {
             let _: Result<(), _> = fs::remove_file(&entry.sidecar);
         }
@@ -665,6 +671,31 @@ fn has_current_filename_conflict(path: &Path, recorded_original: &str) -> bool {
     formatted == recorded_original && (original - named).num_minutes().unsigned_abs() > 5
 }
 
+fn validate_current_metadata(record: &ReviewRecord, path: &Path) -> Result<(), Error> {
+    let current = read_exif(path);
+    if current.taken.is_none() {
+        return Ok(());
+    }
+    let recognized_conflict = matches!(
+        record.conflict.as_str(),
+        "possible_timezone_drift" | "filename_date_conflict"
+    );
+    let explicit_current_amendment = record.action.eq_ignore_ascii_case("amend")
+        && record.status == "conflict"
+        && record.inference == "filename_vs_exif"
+        && recognized_conflict
+        && !record.original_time.trim().is_empty()
+        && has_current_filename_conflict(path, &record.original_time);
+    if explicit_current_amendment {
+        Ok(())
+    } else {
+        Err(Error::Invalid(format!(
+            "refusing row {}: the current file contains DateTimeOriginal; only a still-valid filename conflict may be explicitly amended",
+            record.id
+        )))
+    }
+}
+
 fn source_name(path: &Path, exif: &ExifMetadata) -> String {
     let camera = [exif.make.as_deref(), exif.model.as_deref()]
         .into_iter()
@@ -858,5 +889,34 @@ mod tests {
             apply_review(output.join("review.csv"), output.join("undo.json"), false).unwrap_err();
         assert_eq!(error.exit_code(), 2);
         assert!(!archive.path().join("IMG_20250418_194211.jpg.xmp").exists());
+    }
+
+    #[test]
+    fn apply_refuses_a_trusted_exif_row_tampered_into_accept() {
+        let archive = tempdir().unwrap();
+        let photo = archive.path().join("IMG_20250418_194211.jpg");
+        fs::write(&photo, exif_jpeg()).unwrap();
+        let mut plan = scan_archive(archive.path(), ScanOptions::default()).unwrap();
+        assert_eq!(plan.records[0].status, "trusted");
+        plan.records[0].status = "proposed".into();
+        plan.records[0].original_time.clear();
+        plan.records[0].proposed_time = "2025-04-18T20:42:11+05:30".into();
+        plan.records[0].action = "accept".into();
+        let output = archive.path().join("tampered-accept");
+        write_plan(&plan, &output).unwrap();
+
+        let before = fs::read(&photo).unwrap();
+        let error =
+            apply_review(output.join("review.csv"), output.join("undo.json"), false).unwrap_err();
+
+        assert_eq!(error.exit_code(), 2);
+        assert!(
+            error
+                .to_string()
+                .contains("current file contains DateTimeOriginal")
+        );
+        assert_eq!(fs::read(&photo).unwrap(), before);
+        assert!(!archive.path().join("IMG_20250418_194211.jpg.xmp").exists());
+        assert!(!output.join("undo.json").exists());
     }
 }

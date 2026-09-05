@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3ebdd">
+    <meta name="description" content="Try a filled Capture Clock Repair plan with sample photo metadata. No photo is opened and no sample data is saved.">
+    <title>Demo — Capture Clock Repair</title>
+    <link rel="canonical" href="https://capture-clock-repair.sociobot.in/demo/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Demo — Capture Clock Repair">
+    <meta property="og:description" content="Review a filled capture-time repair plan using sample photo metadata.">
+    <meta property="og:url" content="https://capture-clock-repair.sociobot.in/demo/">
+    <meta property="og:image" content="https://capture-clock-repair.sociobot.in/assets/social-card.webp">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Demo — Capture Clock Repair">
+    <meta name="twitter:description" content="Review a filled capture-time repair plan using sample photo metadata.">
+    <meta name="twitter:image" content="https://capture-clock-repair.sociobot.in/assets/social-card.webp">
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <div class="offline" id="offline-notice" role="status" hidden>You are offline. This sample still works.</div>
+    <aside class="demo-banner" aria-label="Demo mode">
+      <p><b>Demo — sample data, nothing is saved</b></p>
+      <div><button type="button" id="reset-demo">Reset demo</button><a href="/#install">Start for real</a></div>
+    </aside>
+    <header class="site-header">
+      <a class="wordmark" href="/" aria-label="Capture Clock Repair home"><span aria-hidden="true">⌁</span> Capture Clock Repair</a>
+      <nav aria-label="Primary navigation"><a href="/demo/" aria-current="page">Demo</a><a href="/#how-it-works">How it works</a><a href="/#install">Install</a><a href="/privacy/">Privacy</a></nav>
+    </header>
+
+    <main id="main" class="demo-page" tabindex="-1">
+      <section class="demo-intro section" aria-labelledby="demo-title">
+        <p class="eyebrow">Browser sample</p>
+        <h1 id="demo-title">Review a sample capture-time plan</h1>
+        <p class="lede">Use three realistic metadata cases before installing the CLI. This page never opens a photo.</p>
+      </section>
+
+      <section class="section demo-workspace" aria-labelledby="workspace-title">
+        <div class="section-heading compact-heading">
+          <h2 id="workspace-title">Change the sample evidence</h2>
+          <p>The filled row updates only in this page. Reloading or resetting restores the WhatsApp example.</p>
+        </div>
+        <div class="demo-grid">
+          <form id="demo-form" class="sample-controls">
+            <label for="sample">Sample photo</label>
+            <select id="sample" name="sample">
+              <option value="whatsapp" selected>WhatsApp image, EXIF missing</option>
+              <option value="nikon">Nikon image, clocks differ by one hour</option>
+              <option value="unknown">Renamed JPEG, EXIF missing</option>
+            </select>
+            <label for="timezone">Filename timezone</label>
+            <select id="timezone" name="timezone">
+              <option value="+00:00">UTC +00:00</option>
+              <option value="+01:00">UTC +01:00</option>
+              <option value="+05:30">UTC +05:30</option>
+              <option value="-04:00" selected>UTC −04:00</option>
+            </select>
+            <button class="button" type="submit">Update sample plan</button>
+          </form>
+          <div class="specimen-result" id="demo-result" aria-live="polite" aria-atomic="true"></div>
+        </div>
+      </section>
+
+      <section class="section ruled" aria-labelledby="cli-demo-title">
+        <div class="section-heading">
+          <p class="eyebrow">CLI demo</p>
+          <h2 id="cli-demo-title">Run the same sample from a terminal</h2>
+          <p>The installed command creates a new sample workspace under your temporary folder.</p>
+        </div>
+        <div class="command-sheet">
+          <div class="command-head"><span>Terminal recording</span><span class="recording-label">No setup</span></div>
+          <pre><code><span class="prompt">$</span> capture-clock-repair demo
+
+Examined 3 JPEGs across 2 source groups:
+3 proposed, 1 needs review, 1 unsupported.
+Review CSV: /tmp/capture-clock-repair-demo-…/clock-review/review.csv
+Plan JSON: /tmp/capture-clock-repair-demo-…/clock-review/plan.json</code></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Repair photo capture times with reviewed XMP sidecars.</p>
+      <nav aria-label="Legal and project links"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-capture-clock-repair">Source <span class="external-note">(external)</span></a><span>Built by Param Factory · v0.1.1</span></nav>
+    </footer>
+  </body>
+</html>

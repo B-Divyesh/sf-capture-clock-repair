@@ -1,6 +1,6 @@
 [package]
 name = "capture-clock-repair"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.85"
 description = "Conservative capture-time repair plans and reversible XMP sidecars"
@@ -9,7 +9,7 @@ repository = "https://github.com/B-Divyesh/sf-capture-clock-repair"
 readme = "README.md"
 keywords = ["exif", "xmp", "photography", "metadata", "cli"]
 categories = ["command-line-utilities", "multimedia::images"]
-include = ["/src/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE", "/CHANGELOG.md"]
+include = ["/src/**", "/examples/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE", "/CHANGELOG.md"]
 
 [lib]
 name = "capture_clock_repair"

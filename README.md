@@ -1,19 +1,34 @@
 # Capture Clock Repair
 
-Capture Clock Repair is a conservative, offline-first CLI for photographers rebuilding a trustworthy timeline from mixed camera, phone, messenger, and travel archives. It inventories JPEG metadata, groups files by likely source, flags filename/date and timezone conflicts, and proposes inferred capture times in an editable review CSV. Approved repairs are written as adjacent XMP sidecars. Original photos are never modified.
+Capture Clock Repair is a local CLI for photographers combining camera, phone, messenger, and travel archives. It finds missing and shifted photo capture times and writes an editable review plan. Approved changes become adjacent XMP sidecars. The original photo bytes stay unchanged.
 
 ## Install
 
-Download a release binary for your platform, or build from source with Rust 1.85+:
+Install Rust, clone the public source, and install the reviewed checkout:
 
 ```sh
-cargo install --path .
+git clone https://github.com/B-Divyesh/sf-capture-clock-repair.git
+cargo install --locked --path ./sf-capture-clock-repair
 capture-clock-repair --help
 ```
 
-## Usage
+The factory does not publish registry packages from a repair worker.
 
-Start by creating a review folder. Add an offset when filename clocks should be interpreted in a known local timezone:
+## Try the bundled demo
+
+Run the complete scan flow without pointing the CLI at personal files:
+
+```sh
+capture-clock-repair demo
+```
+
+The command creates a new folder under the system temporary directory. It copies four bundled sample files there and writes a populated `review.csv` and `plan.json`. It prints every output path. Pass `--output NEW_FOLDER` to choose a new location.
+
+The same sample is available at [capture-clock-repair.sociobot.in/demo/](https://capture-clock-repair.sociobot.in/demo/). Browser demo state is not stored. Use **Reset demo** to restore the first sample.
+
+## Scan and review an archive
+
+Create a review folder. Set the offset used for filename clocks:
 
 ```sh
 capture-clock-repair scan ~/Pictures/Trip \
@@ -21,15 +36,26 @@ capture-clock-repair scan ~/Pictures/Trip \
   --timezone +05:30
 ```
 
-Negative offsets use the same separated form, so a trip in Atlantic time is:
+Negative offsets work in the same form:
 
 ```sh
 capture-clock-repair scan ~/Pictures/Trip --output clock-review --timezone -04:00
 ```
 
-This writes `clock-review/review.csv` and `clock-review/plan.json`. Rows with a trustworthy EXIF `DateTimeOriginal` use `keep` and can never become sidecar writes. Missing dates inferred from a filename are proposed as `accept`; weaker filesystem-time guesses remain `review`. Conflicts remain `review` until you explicitly change their action to `amend`.
+Scan writes `clock-review/review.csv` and `clock-review/plan.json`. It reads subfolders unless `--no-recursive` is set. The plan groups camera and messenger sources when the available evidence supports a group.
 
-Open `review.csv` in a spreadsheet or text editor. Set `action` to `accept` for an unchanged proposal, or use `amend` with an ISO 8601 `proposed_time` such as `2025-04-18T19:42:11+05:30`. Leave uncertain rows as `review` or `skip`. Then preview and apply:
+Review `review.csv` in a spreadsheet or text editor:
+
+- `keep` protects a current embedded `DateTimeOriginal`.
+- `accept` approves an unchanged proposal for a file without that EXIF value.
+- `amend` approves a reviewed time or a still-valid filename and EXIF conflict.
+- `review` and `skip` produce no sidecar.
+
+Use an ISO 8601 `proposed_time` with an offset, such as `2025-04-18T19:42:11+05:30`.
+
+## Preview, apply, and undo
+
+Preview all approved writes before applying them:
 
 ```sh
 capture-clock-repair apply clock-review/review.csv --dry-run
@@ -37,55 +63,52 @@ capture-clock-repair apply clock-review/review.csv \
   --manifest clock-review/undo.json
 ```
 
-Each accepted repair creates `<original filename>.xmp`; it does not touch the source file. Existing sidecars are refused. The manifest records every created file and its checksum. Undo removes a sidecar only if it is still byte-for-byte identical:
+Apply re-reads each current JPEG before writing. A current `DateTimeOriginal` is refused unless the row is an explicit amendment of a conflict the CLI can reproduce. Editing CSV control fields cannot turn trusted EXIF into an accepted missing date.
+
+Each approved repair creates `<original filename>.xmp`. Apply refuses an existing sidecar. The manifest records the SHA-256 checksum of each new sidecar. Undo removes only unchanged sidecars:
 
 ```sh
 capture-clock-repair undo clock-review/undo.json
 ```
 
-All commands support `--json` for scripting. Diagnostics go to stderr and successful JSON goes to stdout. Exit code `0` means success, `2` means invalid input or a safety refusal, and `1` means an unexpected I/O failure.
+## Supported evidence
 
-### Public library surface
+- JPEG and JPG files with EXIF `DateTimeOriginal`, `OffsetTimeOriginal`, camera make, and camera model
+- Filename clocks such as `IMG_20250418_194211.jpg`, `2025-04-18 19.42.11.jpg`, and `WhatsApp Image 2025-04-18 at 19.42.11.jpg`
+- Missing dates, filename and EXIF conflicts, and likely whole-hour timezone shifts
+- Recursive folders by default, with `--no-recursive` for one folder
 
-The crate exposes a small typed API used by the binary:
+Version 0.1.1 reports RAW, HEIC, video, TIFF, and PNG files as unsupported. It does not change those files. The CLI proposes review evidence and does not claim forensic certainty.
 
-```rust
-use capture_clock_repair::{scan_archive, ScanOptions};
+## Scripting
 
-let plan = scan_archive("tests/fixtures/archive", ScanOptions::default())?;
-assert_eq!(plan.summary.trusted, 1);
-# Ok::<(), capture_clock_repair::Error>(())
-```
+Every command supports `--json`. Successful JSON goes to stdout. Diagnostics go to stderr. Exit code `0` means success, `2` means invalid input or a safety refusal, and `1` means an unexpected I/O failure. Commands do not prompt for input.
 
-`scan_archive` is read-only. `apply_review` and `undo_manifest` are the only write APIs; both operate on sidecars, never originals.
+## Privacy and offline use
 
-## What it recognizes
+The CLI reads local files and makes no network requests. It contains no telemetry. The website uses no analytics, trackers, third-party scripts, or remote fonts. The guide and browser sample reload offline after their first visit.
 
-- JPEG/JPG files, including EXIF `DateTimeOriginal`, `OffsetTimeOriginal`, camera make, and model
-- Common camera and messenger filename clocks such as `IMG_20250418_194211.jpg`, `2025-04-18 19.42.11.jpg`, and `WhatsApp Image 2025-04-18 at 19.42.11.jpg`
-- Existing trusted times, missing times, filename-versus-EXIF conflicts, and likely whole-hour timezone drift
-- Recursive archives by default (`--no-recursive` is available)
+See the published [privacy policy](https://capture-clock-repair.sociobot.in/privacy/) and [terms](https://capture-clock-repair.sociobot.in/terms/).
 
-Capture Clock Repair does not claim forensic certainty and does not rewrite embedded EXIF. RAW, HEIC, video, and PNG metadata are reported as unsupported in v0.1.0; those files remain untouched.
+## Develop, test, and package
 
-## Develop
+From a clean checkout:
 
 ```sh
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
 cargo test
-cargo build --release
 npm ci
-npx playwright install chromium # browser-test prerequisite after a clean checkout
+npx playwright install chromium
 npm test
-npm run build:site       # static site -> dist/site
-npm run build            # release binary + static site -> dist/
+npm run build:site
+npm run build
 cargo package --allow-dirty
 ```
 
-The landing site is dependency-free and can be served locally with `npm run dev`. It stores a pasted or returned Sociobot license and its daily verification verdict in local storage; the CLI itself performs no network calls and collects no telemetry.
+`npm test` runs Rust, CLI-consumer, claim, browser-demo, privacy, and offline checks. Run one declared claim with `npm run test:claim -- CLAIM_ID`. Every public claim and command is listed in `.factory/claims.json`.
 
-## Privacy and deployment
-
-Photo inspection is entirely local. No filenames, timestamps, metadata, or plans leave the machine. The website uses no analytics, third-party scripts, or CDN assets. Static deployment serves `dist/site` at [capture-clock-repair.sociobot.in](https://capture-clock-repair.sociobot.in); the factory owns deployment and registry credentials.
+`npm run build` creates `dist/bin/capture-clock-repair` for the current platform and the static site in `dist/site`. The factory deploys `dist/site`; it owns release binaries and registry credentials.
 
 ## License
 

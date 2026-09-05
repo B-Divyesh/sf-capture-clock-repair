@@ -10,11 +10,11 @@ test("filename evidence preserves the chosen offset", () => {
 
 test("timezone conflict requires explicit review", () => {
   const result = analyzeSample("nikon", "+00:00");
-  assert.equal(result.action, "review → amend after confirmation");
+  assert.equal(result.action, "review, then amend after confirmation");
   assert.equal(result.proposed, "2026-03-29T11:15:04+01:00");
   assert.match(specimenMarkup(result), /Protected conflict/);
 });
 
-test("unknown samples use the empty state", () => {
-  assert.equal(analyzeSample("", "+00:00"), null);
+test("the browser demo always starts with populated sample data", () => {
+  assert.equal(analyzeSample("", "+00:00").file, "WhatsApp Image 2025-04-18 at 19.42.11.jpg");
 });

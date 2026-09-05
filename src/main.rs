@@ -3,7 +3,9 @@ use capture_clock_repair::{
 };
 use clap::{Parser, Subcommand};
 use serde::Serialize;
+use std::fs;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Parser)]
 #[command(
@@ -19,6 +21,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Run the complete scan workflow on bundled sample photos
+    Demo {
+        /// New folder to receive the isolated sample workspace
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Print the result as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// Inspect an archive and write review.csv plus plan.json
     Scan {
         /// Folder containing the photo archive
@@ -68,6 +79,80 @@ enum Command {
     },
 }
 
+#[derive(Serialize)]
+struct DemoResult {
+    mode: &'static str,
+    workspace: String,
+    archive: String,
+    review_csv: String,
+    plan_json: String,
+    summary: capture_clock_repair::Summary,
+}
+
+fn demo_workspace(output: Option<PathBuf>) -> Result<PathBuf, Error> {
+    let workspace = output.unwrap_or_else(|| {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+        std::env::temp_dir().join(format!(
+            "capture-clock-repair-demo-{}-{nonce}",
+            std::process::id()
+        ))
+    });
+    if workspace.exists() {
+        return Err(Error::Invalid(format!(
+            "demo output '{}' already exists; choose a new folder",
+            workspace.display()
+        )));
+    }
+    Ok(workspace)
+}
+
+fn run_demo(output: Option<PathBuf>) -> Result<DemoResult, Error> {
+    let workspace = demo_workspace(output)?;
+    let archive = workspace.join("sample-archive");
+    let review = workspace.join("clock-review");
+    fs::create_dir_all(&archive)?;
+    for (name, contents) in [
+        (
+            "WhatsApp Image 2025-04-18 at 19.42.11.jpg",
+            include_bytes!("../examples/sample-archive/WhatsApp Image 2025-04-18 at 19.42.11.jpg")
+                .as_slice(),
+        ),
+        (
+            "IMG_20250703_081522.jpg",
+            include_bytes!("../examples/sample-archive/IMG_20250703_081522.jpg").as_slice(),
+        ),
+        (
+            "summer-evening.jpg",
+            include_bytes!("../examples/sample-archive/summer-evening.jpg").as_slice(),
+        ),
+        (
+            "trip-export.png",
+            include_bytes!("../examples/sample-archive/trip-export.png").as_slice(),
+        ),
+    ] {
+        fs::write(archive.join(name), contents)?;
+    }
+    let plan = scan_archive(
+        &archive,
+        ScanOptions {
+            recursive: true,
+            timezone: "+05:30".into(),
+        },
+    )?;
+    write_plan(&plan, &review)?;
+    Ok(DemoResult {
+        mode: "demo — bundled sample data",
+        workspace: workspace.to_string_lossy().into_owned(),
+        archive: archive.to_string_lossy().into_owned(),
+        review_csv: review.join("review.csv").to_string_lossy().into_owned(),
+        plan_json: review.join("plan.json").to_string_lossy().into_owned(),
+        summary: plan.summary,
+    })
+}
+
 fn parse_offset(value: &str) -> Result<String, String> {
     validate_offset(value)
         .map(|_| value.to_string())
@@ -80,7 +165,40 @@ fn print_json<T: Serialize>(value: &T) -> Result<(), Error> {
 }
 
 fn run() -> Result<(), Error> {
-    match Cli::parse().command {
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error)
+            if matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            ) =>
+        {
+            error.print().map_err(Error::Io)?;
+            return Ok(());
+        }
+        Err(error) => return Err(Error::Invalid(error.to_string())),
+    };
+    match cli.command {
+        Command::Demo { output, json } => {
+            let result = run_demo(output)?;
+            if json {
+                print_json(&result)?;
+            } else {
+                println!("Demo — sample data in an isolated temporary workspace.");
+                println!(
+                    "Examined {} JPEGs across {} source group(s): {} proposed, {} need review, {} unsupported.",
+                    result.summary.examined,
+                    result.summary.sources,
+                    result.summary.proposed,
+                    result.summary.review,
+                    result.summary.unsupported
+                );
+                println!("Review CSV: {}", result.review_csv);
+                println!("Plan JSON: {}", result.plan_json);
+                println!("Workspace: {}", result.workspace);
+                println!("No personal photos or existing files were read or changed.");
+            }
+        }
         Command::Scan {
             archive,
             output,
