@@ -1,37 +1,21 @@
-# Capture Clock Repair — verification 3 handoff
+# Capture Clock Repair — review 2 handoff
 
 **Completed:** 5 September 2026
+**Verdict: PASS** — 0 findings, 0 untested claims
 
-**Verdict: PASS**
-
-- Findings: **0**
-- Untested claims: **0**
 - Implementation reviewed: `9edbda982eabaebc97c2b057bed2a3486e133570`
-- Documentation reviewed: `c7c08de7fa87bdb99ca085d8d86e1906482d35ba`
-- Live URL: https://capture-clock-repair.sociobot.in/
-- Full evidence: [verification-3.md](verification-3.md)
+- Documentation reviewed: `eb064912967427592f59b83625c641571c731192`
+- Live URL: <https://capture-clock-repair.sociobot.in/>
+- Full evidence: [review-2.md](review-2.md)
 
-## What was verified
+## What was done
 
-- The live page in fresh desktop and 390 px phone contexts, including the first-screen job, audience, action, and three facts.
-- The one-click filled sample, persistent demo label, realistic WhatsApp and Nikon results, reset, start-for-real path, and empty browser storage.
-- Root, demo, privacy, terms, explicit 404, and a random HTTP 404 in light and dark modes.
-- Keyboard operation, focus, skip link, touch targets, reduced motion, Axe, privacy requests, offline reload, service-worker update, links, metadata, headers, and Lighthouse.
-- Every command in `.factory/claims.json`, separately, from a clean detached checkout.
-- Formatting, Clippy, aggregate tests, production build, locked package, clean packaged install, and the exact public GitHub install.
-- Installed CLI demo, normal scan/apply/undo, dry-run, invalid and missing input, timezone boundaries, trusted-EXIF tampering, changed-sidecar recovery, and source-file checksums.
-- Every earlier high, medium, and low finding from the three prior review reports.
-
-## Results
-
-- All 12 declared claims passed; none is untested.
-- `npm test` passed 7 Rust unit tests, 1 doctest, and 15 Node tests.
-- `npm run build` produced `dist/bin` and `dist/site`.
-- `cargo package --locked` verified 13 files, 71.0 KiB unpacked and 21.3 KiB compressed.
-- The public source install reports version 0.1.1 and runs the bundled demo.
-- Live Axe results are zero violations across all routes and both color schemes.
-- Lighthouse mobile is 100 for Performance, Accessibility, Best Practices, and SEO. LCP is 1.23 s, CLS is 0, and total blocking time is 0 ms.
-- Live HTML, JavaScript, CSS, and social image hashes equal the clean implementation build.
+- Re-ran every one of the 12 declared claim commands separately from a clean public clone; all passed.
+- Passed formatting, Clippy, aggregate tests, production build, locked package verification, a clean packed-consumer install, and the installed `demo --json` flow.
+- Verified fresh live desktop and 390 px phone views, first-screen wording, the one-click sample, persistent demo notice, change/reset paths, empty storage, privacy requests, offline reload, accessibility, keyboard focus, reduced motion, links, legal routes, and designed HTTP 404.
+- Matched the clean build's HTML, JavaScript, and CSS hashes to the live site.
+- Repeated Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1.2 s, CLS 0, TBT 0 ms.
+- Checked all earlier findings from review 1 and verification 1. Each is fixed or, for the unavailable payment offer, resolved by removing that offer and its claims.
 
 ## Run the checks
 
@@ -54,6 +38,6 @@ npm run test:claim -- CLAIM_ID
 
 ## Product state and follow-up
 
-No product code changed during verification. This product has no backend or product database; all CLI tests used temporary folders and synthetic samples.
+No product code changed during this review. This product has no backend or product database; all CLI tests used temporary folders and synthetic bundled samples.
 
-The Sociobot checkout endpoint remains unregistered and returns 404. The live site correctly makes no paid offer and the complete CLI is free under MIT. Billing registration, registry publishing, and platform binaries remain factory-owned follow-up tasks.
+The complete CLI is free under MIT. Registry publishing and platform binaries remain factory-owned follow-up work; the documented source-install route and ready-to-publish crate package work today.
