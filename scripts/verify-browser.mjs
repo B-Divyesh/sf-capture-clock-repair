@@ -120,7 +120,8 @@ const offline = {
 await offlineContext.close();
 await browser.close();
 
-const report = { pages: results, beforeScroll, filled, changed, reset, phone: phoneCheck, skipFocused, mainFocused, reducedMotion, requestOrigins: [...requestOrigins], offline };
+const observedRequestOrigins = [...requestOrigins];
+const report = { pages: results, beforeScroll, filled, changed, reset, phone: phoneCheck, skipFocused, mainFocused, reducedMotion, requestOrigins: observedRequestOrigins, offline };
 console.log(JSON.stringify(report, null, 2));
 
 const routeFailed = results.some((item) =>
@@ -128,11 +129,30 @@ const routeFailed = results.some((item) =>
   item.structure.main !== 1 || item.structure.missingAlt !== 0 || !item.structure.canonical || !item.structure.openGraph ||
   !item.structure.twitter || !item.structure.appleTouch || item.errors.length || item.violations.length
 );
-const interactionFailed = beforeScroll.h1 !== "Repair missing and shifted photo times" || !beforeScroll.audience.includes("photographers") ||
-  beforeScroll.primary !== "Try it with sample data" || beforeScroll.facts.length !== 3 || !filled.includes("WhatsApp Image") ||
-  !changed.toLowerCase().includes("protected conflict") || !reset.toLowerCase().includes("ready to review") ||
-  phoneCheck.horizontalOverflow || phoneCheck.smallTargets.length || phoneCheck.storage.local || phoneCheck.storage.session ||
-  !skipFocused || !mainFocused || Number.parseFloat(reducedMotion.animationDuration) > 0.00002 || reducedMotion.scrollBehavior !== "auto" ||
-  requestOrigins.length !== 1 || requestOrigins[0] !== new URL(base).origin || !offline.notice || !offline.sample.includes("WhatsApp Image");
+const interactionChecks = {
+  firstScreenHeading: beforeScroll.h1 !== "Repair missing and shifted photo times",
+  firstScreenAudience: !beforeScroll.audience.includes("photographers"),
+  firstScreenAction: beforeScroll.primary !== "Try it with sample data",
+  firstScreenFacts: beforeScroll.facts.length !== 3,
+  filledSample: !filled.includes("WhatsApp Image"),
+  changedSample: !changed.toLowerCase().includes("protected conflict"),
+  resetSample: !reset.toLowerCase().includes("ready to review"),
+  horizontalOverflow: phoneCheck.horizontalOverflow,
+  smallTargets: phoneCheck.smallTargets.length > 0,
+  localStorage: phoneCheck.storage.local > 0,
+  sessionStorage: phoneCheck.storage.session > 0,
+  skipFocus: !skipFocused,
+  mainFocus: !mainFocused,
+  reducedMotion: Number.parseFloat(reducedMotion.animationDuration) > 0.00002,
+  reducedScroll: reducedMotion.scrollBehavior !== "auto",
+  requestCount: observedRequestOrigins.length !== 1,
+  requestOrigin: observedRequestOrigins[0] !== new URL(base).origin,
+  offlineNotice: !offline.notice,
+  offlineSample: !offline.sample.includes("WhatsApp Image")
+};
+const interactionFailed = Object.values(interactionChecks).some(Boolean);
 
-if (routeFailed || interactionFailed) process.exit(1);
+if (routeFailed || interactionFailed) {
+  console.error(JSON.stringify({ routeFailed, interactionChecks }));
+  process.exit(1);
+}

@@ -1,14 +1,14 @@
 {
-  "url": "http://127.0.0.1:4173/",
-  "loadMs": 526,
+  "url": "https://capture-clock-repair.sociobot.in",
+  "loadMs": 781,
   "errors": [],
   "a11y": {
-    "title": "Capture Clock Repair — safe photo timestamp plans",
+    "title": "Capture Clock Repair — Repair photo capture times",
     "lang": "en",
     "h1": 1,
     "main": true,
     "imgsMissingAlt": 0,
     "buttonsUnlabeled": 0,
-    "textLength": 3087
+    "textLength": 2649
   }
 }
